@@ -184,7 +184,7 @@ struct ParseStringHandler : BaseReaderHandler<Encoding> {
 		EXPECT_EQ(0, str_);
 		if (copy) {
 			str_ = (typename Encoding::Ch*)malloc((length + 1) * sizeof(typename Encoding::Ch));
-			memcpy((void*)str_, str, (length + 1) * sizeof(typename Encoding::Ch));
+			memcpy(const_cast<typename Encoding::Ch*>(str_), str, (length + 1) * sizeof(typename Encoding::Ch));
 		}
 		else
 			str_ = str;
