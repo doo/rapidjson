@@ -101,10 +101,9 @@ struct BaseReaderHandler {
 */
 template<typename InputStream>
 void SkipWhitespace(InputStream& is) {
-	InputStream s = is;	// Use a local copy for optimization
-	while (s.Peek() == ' ' || s.Peek() == '\n' || s.Peek() == '\r' || s.Peek() == '\t')
-		s.Take();
-	is = s;
+	while (is.Peek() == ' ' || is.Peek() == '\n' || is.Peek() == '\r' || is.Peek() == '\t') {
+		is.Take();
+	}
 }
 
 #ifdef RAPIDJSON_SSE42
@@ -363,10 +362,9 @@ private:
 	// Helper function to parse four hexidecimal digits in \uXXXX in ParseString().
 	template<typename InputStream>
 	unsigned ParseHex4(InputStream& is) {
-		InputStream s = is;	// Use a local copy for optimization
 		unsigned codepoint = 0;
 		for (int i = 0; i < 4; i++) {
-			Ch c = s.Take();
+			Ch c = is.Take();
 			codepoint <<= 4;
 			codepoint += c;
 			if (c >= '0' && c <= '9')
@@ -376,9 +374,8 @@ private:
 			else if (c >= 'a' && c <= 'f')
 				codepoint -= 'a' - 10;
 			else
-				RAPIDJSON_PARSE_ERROR("Incorrect hex digit after \\u escape", s.Tell() - 1);
+				RAPIDJSON_PARSE_ERROR("Incorrect hex digit after \\u escape", is.Tell() - 1);
 		}
-		is = s; // Restore is
 		return codepoint;
 	}
 
@@ -402,20 +399,18 @@ private:
 	// Parse string and generate String event. Different code paths for kParseInsituFlag.
 	template<unsigned parseFlags, typename InputStream, typename Handler>
 	void ParseString(InputStream& is, Handler& handler) {
-		InputStream s = is;	// Local copy for optimization
 		if (parseFlags & kParseInsituFlag) {
-			Ch *head = s.PutBegin();
-			ParseStringToStream<parseFlags, SourceEncoding, SourceEncoding>(s, s);
-			size_t length = s.PutEnd(head) - 1;
+			Ch *head = is.PutBegin();
+			ParseStringToStream<parseFlags, SourceEncoding, SourceEncoding>(is, is);
+			size_t length = is.PutEnd(head) - 1;
 			RAPIDJSON_ASSERT(length <= 0xFFFFFFFF);
 			handler.String((typename TargetEncoding::Ch*)head, SizeType(length), false);
 		}
 		else {
 			StackStream stackStream(stack_);
-			ParseStringToStream<parseFlags, SourceEncoding, TargetEncoding>(s, stackStream);
+			ParseStringToStream<parseFlags, SourceEncoding, TargetEncoding>(is, stackStream);
 			handler.String(stack_.template Pop<typename TargetEncoding::Ch>(stackStream.length_), stackStream.length_ - 1, true);
 		}
-		is = s;		// Restore is
 	}
 
 	// Parse string to an output is
@@ -477,8 +472,7 @@ private:
 	}
 
 	template<unsigned parseFlags, typename InputStream, typename Handler>
-	void ParseNumber(InputStream& is, Handler& handler) {
-		InputStream s = is; // Local copy for optimization
+	void ParseNumber(InputStream& s, Handler& handler) {
 		// Parse minus
 		bool minus = false;
 		if (s.Peek() == '-') {
@@ -518,7 +512,7 @@ private:
 				}
 		}
 		else
-			RAPIDJSON_PARSE_ERROR("Expect a value here.", is.Tell());
+			RAPIDJSON_PARSE_ERROR("Expect a value here.", s.Tell());
 
 		// Parse 64bit int
 		uint64_t i64 = 0;
@@ -551,7 +545,7 @@ private:
 			d = (double)i64;
 			while (s.Peek() >= '0' && s.Peek() <= '9') {
 				if (d >= 1E307)
-					RAPIDJSON_PARSE_ERROR("Number too big to store in double", is.Tell());
+					RAPIDJSON_PARSE_ERROR("Number too big to store in double", s.Tell());
 				d = d * 10 + (s.Take() - '0');
 			}
 		}
@@ -570,7 +564,7 @@ private:
 				--expFrac;
 			}
 			else
-				RAPIDJSON_PARSE_ERROR("At least one digit in fraction part", is.Tell());
+				RAPIDJSON_PARSE_ERROR("At least one digit in fraction part", s.Tell());
 
 			while (s.Peek() >= '0' && s.Peek() <= '9') {
 				if (expFrac > -16) {
@@ -603,7 +597,7 @@ private:
 				while (s.Peek() >= '0' && s.Peek() <= '9') {
 					exp = exp * 10 + (s.Take() - '0');
 					if (exp > 308)
-						RAPIDJSON_PARSE_ERROR("Number too big to store in double", is.Tell());
+						RAPIDJSON_PARSE_ERROR("Number too big to store in double", s.Tell());
 				}
 			}
 			else
@@ -632,8 +626,6 @@ private:
 					handler.Uint(i);
 			}
 		}
-
-		is = s; // restore is
 	}
 
 	// Parse any JSON value
