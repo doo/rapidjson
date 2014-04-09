@@ -130,7 +130,9 @@ public:
 	GenericValue(const Ch* s, SizeType length, Allocator& allocator) { SetStringRaw(s, length, allocator); }
 
 	//! Constructor for copy-string (i.e. do make a copy of string)
-	GenericValue(const std::basic_string<Ch>& value, Allocator& allocator) { SetStringRaw(value.c_str(), value.length(), allocator); }
+	GenericValue(const std::basic_string<Ch>& value, Allocator& allocator) {
+		SetStringRaw(value.c_str(), static_cast<SizeType>(value.length() / sizeof(Ch)), allocator);
+	}
 
 	//! Constructor for copy-string (i.e. do make a copy of string)
 	GenericValue(const Ch*s, Allocator& allocator) { SetStringRaw(s, internal::StrLen(s), allocator); }
