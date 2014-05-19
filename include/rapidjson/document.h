@@ -513,6 +513,15 @@ int z = a[0u].GetInt();				// This works too.
 	*/
 	GenericValue& SetString(const Ch* s, Allocator& allocator) {	SetString(s, internal::StrLen(s), allocator); return *this; }
 
+	//! Set this value as a string by copying from source string.
+	/*!	\param s source string. 
+		\param allocator Allocator for allocating copied buffer. Commonly use document.GetAllocator().
+		\return The value itself for fluent API.
+	*/
+	GenericValue& SetString(const std::basic_string<Ch>& s, Allocator& allocator) {	SetString(s.c_str(), static_cast<SizeType>(s.length()), allocator); return *this; }
+
+
+
 	//@}
 
 	//! Generate events of this value to a Handler.
